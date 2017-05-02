@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="An asteroid esk javascript game, where the goal is to dodge the obstacles for as long as you can">
+    <meta name="keywords" content="HTML,CSS,JavaScript">
+    <meta name="author" content="Joseph Tassone">
+    <title>Joe Tassone</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+    
+<!--Body positions it's primary children using flex-box-->
+<body>
+    
+    <!--Positions primary children (section) using flexbox, background is a gradiant-->
+    <main>
+        
+        <!--Section tag holds the canvas and instructions-->
+        <section>
+            
+            <!--Game Instructions-->
+            <div id="instructions">
+                <h1>Instruction and Controls</h1>
+                <pre>1) Controls: "Q" = up and "W" = down <br>2) Avoid the asteroids<br>3) Press buttons to start and restart<br></pre>
+                <br>
+                <!--Buttons start and restart the game-->
+                <button onclick="startGame()">Start</button> 
+                <button onclick="restart()">Restart</button>
+            </div>
+            <!--Container for the game (see below javascript)-->
+            <canvas id="canvas">Not compatible with current browser</canvas>
+        </section>
+    </main>
+    
+    <!--Note: Game code inspired and based partially off of canvas game tutorial found on W3Schools; if the code looks similar it's because much of it couldn't have been done without guidance from that site-->
+    <script>
+    
+    /*variables for the player, obstacles (an array), backgrounds, score*/
+    var gamePiece;
+    var obstacles = [];
+    var score;
+    var background1;
+    var background2;
+    var counter = 0;
+    
+    /*function starts the game, creats the player and background (images), calls score*/
+    function startGame() {
+        var player = document.createElement('img');
+        player.src ="img/Spaceship.png";
+        gamePiece = new component(player, 10, 120, 50, 50);  
+        score = new score();
+        
+        var background = document.createElement('img');
+        background.src="img/space.jpg"
+        background1 = new component(background, 0, 0, 700, 350);
+        background2 = new component(background, 700, 0, 700, 350);
+        gameArea.start();
+    }
+    
+    /*adds a score marker to the screen (counter increases every at every frame change)*/
+    function score() {
+        this.update = function(){
+            ctx = gameArea.context;
+            ctx.font = "20px Georgia";
+            ctx.fillStyle = "white";
+            ctx.fillText("Score: " + counter++, 590, 20);
+        }
+    }
+    
+    /*game area is an object which performs the primary game functions*/
+    var gameArea = {
+        canvas : document.getElementById("canvas"),
+        /*sets the game area size, and the initial frame*/
+        start : function() {
+            this.canvas.width = 700;
+            this.canvas.height = 350;
+            this.context = this.canvas.getContext("2d");
+            this.canvas.style.border="black solid 1px";
+            this.frameNo = 0;
+            /*game area is updated (redrawn) 50 times per second*/
+            this.interval = setInterval(updateGameArea, 20);
+            /*event listeners are used to move the ship up and down (on key press)*/
+            window.addEventListener('keydown', function (e) {
+                gameArea.key = e.keyCode;
+            })
+            window.addEventListener('keyup', function (e) {
+                gameArea.key = false;
+            })
+        },
+        /*clears the game area to allow it to be redrawn (illusion of constant movement)*/
+        clear : function() {
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+    
+    /*function is used to determine at what frame to create a new obstacle (every 25 frames)*/
+    function everyinterval(n) {
+        if ((gameArea.frameNo / n) % 1 == 0) {return true;}
+        return false;
+    }
+    
+    /*used to create players, obstacles, and the background (all images)*/
+    function component(img, x, y, width, height) {
+        this.img = img;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        /*when updated draw the images at current positions*/
+        this.update = function(){
+            ctx = gameArea.context;
+            ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+        }
+        this.speedY = 0;
+        this.newPos = function() {
+            this.y += this.speedY;
+        } 
+        /*checks whether to reset the background's position (rotating illusion)*/
+        this.check = function() {
+            if(this.x < (-700) ) {
+                  this.x = 699;
+            }
+        }
+        
+        /*used to check when the player impacts a certain obstacle (compares positions)*/
+        this.crashWith = function(obstacle) {
+            var characterLeft = this.x;
+            var characterRight = this.x + (this.width);
+            var characterTop = this.y;
+            var characterBottom = this.y + (this.height);
+            var obstacleLeft = obstacle.x;
+            var obstacleRight = obstacle.x + (obstacle.width);
+            var obstacleTop = obstacle.y;
+            var obstacleBottom = obstacle.y + (obstacle.height);
+            var crash = true;
+            /*if the obstacles crash with player return true*/
+            if ((characterBottom < obstacleTop) || (characterTop > obstacleBottom) || (characterRight < obstacleLeft) || (characterLeft > obstacleRight)) {
+                crash = false;
+            }
+            return crash;
+        }
+    }
+    
+    /*the canvas is updated every frame using the following function*/
+    function updateGameArea() {
+        var x, y;
+        
+        /*if the pieces crash into each other the game ends (no more frame updates)*/
+        for (i = 0; i < obstacles.length; i += 1) {
+            if (gamePiece.crashWith(obstacles[i])) {
+                return;
+            }
+        }
+        /*once collision has been checked the game area is reset and cleared*/
+        gameArea.clear();
+        
+        /*moves the backgrounds to a new position every frame and constantly checks if the position has to be reset to the initial point*/
+        background1.x += -1;
+        background1.newPos(); 
+        background1.update();
+        background1.check();
+
+        background2.x += -1;
+        background2.newPos(); 
+        background2.update();
+        background2.check();
+        
+        /*increments the frames*/
+        gameArea.frameNo += 1;
+        
+        /*adds obstacles to the frame at every 25 intervals (pushed images into array)*/
+        if (gameArea.frameNo == 1 || everyinterval(25)) {
+            x = gameArea.canvas.width;
+            minHeight = 0;
+            maxHeight = 330;
+            /*randomizes their positions on the game area*/
+            height = Math.floor(Math.random()*(maxHeight-minHeight+1)+minHeight);
+            var npc = document.createElement('img');
+            npc.src="img/Asteroid.png"
+            obstacles.push(new component(npc, 700, height, 75, 75));
+            
+            //Removes asteroids once they have left the FOV (efficiency purposes)
+            if(gameArea.frameNo > 200 && everyinterval(100) ) {
+                obstacles.shift();
+            }
+        }
+        
+        /*sets the obstacles speed across the game area (moving along x)*/
+        for (i = 0; i < obstacles.length; i += 1) {
+            obstacles[i].x += -8;
+            obstacles[i].update();
+        }
+        
+        /*sets the game piece speed across the game area (moving along y) when keys are pressed */
+        gamePiece.speedY = 0;
+        if (gameArea.key && gameArea.key == 81) {
+            if(gamePiece.y > 0) {
+                gamePiece.speedY = -5; 
+            }
+        }
+        if (gameArea.key && gameArea.key == 87) {
+            if(gamePiece.y < 300) {
+                gamePiece.speedY = 5; 
+            }
+        }
+        
+        /*updates the game piece position and score before the clear*/
+        gamePiece.newPos();
+        gamePiece.update();
+        score.update();
+    }
+        
+    /*resets obstacles, counter, and frames*/
+    function restart() {
+        counter = 0
+        obstacles = [];
+        gameArea.frameNo = 0;
+        startGame();
+    }
+    </script>
+</body>
+</html>

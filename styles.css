@@ -1,0 +1,25 @@
+/* Resets the margins and sizing properties of the pages prior to any other CSS loading */
+* {
+    margin:0;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+/* box holds the instructions and the reset button */
+#instructions {
+    margin-bottom: 10px;
+    padding: 5px;
+    height: 125px;
+    width:300px;
+    background:white;
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+    box-shadow: 2px 2px 2px 2px black;
+    overflow:auto;
+}
+
+
+
+
